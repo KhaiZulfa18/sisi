@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sisi — To-Do</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <h1>Sisi<span class="brand-dot">.</span></h1>
+      <p class="date" id="todayDate"></p>
+    </div>
+    <div class="header-right">
+      <div class="counter" id="counter" title="Tugas aktif">0</div>
+      <button class="hdr-btn" id="themeBtn" title="Ganti tema">◐</button>
+      <button class="hdr-btn" id="closeBtn" title="Tutup panel">✕</button>
+    </div>
+  </header>
+
+  <div class="theme-picker" id="themePicker" hidden>
+    <p class="theme-label">Tema</p>
+    <div class="swatches" id="swatches"></div>
+  </div>
+
+  <div class="composer">
+    <div class="input-wrap">
+      <input
+        type="text"
+        id="taskInput"
+        placeholder="Tulis tugas… pakai #tag untuk label"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div class="tag-suggest" id="tagSuggest" hidden></div>
+    </div>
+    <button id="addBtn" title="Tambah tugas (Enter)">+</button>
+  </div>
+  <p class="hint">contoh: <code>review PR dashboard #kerja #urgent</code></p>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="active">Aktif</button>
+    <button class="tab" data-tab="history">Riwayat</button>
+  </nav>
+
+  <div class="tag-filter" id="tagFilter"></div>
+
+  <main>
+    <section id="activeView">
+      <ul class="task-list" id="taskList"></ul>
+      <div class="empty" id="emptyActive" hidden>
+        <p>Belum ada tugas.</p>
+        <p class="empty-sub">Tulis di atas, tekan Enter.</p>
+      </div>
+    </section>
+
+    <section id="historyView" hidden>
+      <div class="history-actions">
+        <button id="clearHistoryBtn" class="text-btn danger">Hapus semua riwayat</button>
+      </div>
+      <ul class="task-list" id="historyList"></ul>
+      <div class="empty" id="emptyHistory" hidden>
+        <p>Riwayat kosong.</p>
+        <p class="empty-sub">Tugas yang selesai akan tersimpan di sini.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
