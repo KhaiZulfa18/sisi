@@ -147,8 +147,8 @@ body {
 /* ============ Theme picker ============ */
 .theme-picker {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -157,11 +157,27 @@ body {
   animation: slideIn 0.18s ease;
 }
 
+.picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .theme-label {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--ink-soft);
+  min-width: 32px;
 }
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: -6px;
+}
+
+.backup-actions .text-btn:hover { color: var(--accent); }
 
 .swatches { display: flex; gap: 7px; }
 
@@ -488,9 +504,32 @@ body {
   transition: opacity 0.15s, color 0.15s;
 }
 
-.task:hover .icon-btn { opacity: 1; }
+.icon-row { display: flex; gap: 2px; }
+
+.task:hover .icon-btn,
+.icon-btn:focus-visible { opacity: 1; }
+.icon-btn.edit:hover { color: var(--accent); }
 .icon-btn:hover { color: var(--danger); }
 .icon-btn.restore:hover { color: var(--accent); }
+
+/* Edit inline */
+.task-text { cursor: text; }
+
+.edit-input {
+  width: 100%;
+  font: inherit;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 3px 7px;
+  margin: -4px 0 0 -8px;
+  outline: none;
+}
+
+.task.editing { border-color: var(--accent); }
+.task.editing .drag-handle { visibility: hidden; }
 
 /* ============ History ============ */
 .history-actions {
@@ -526,6 +565,49 @@ body {
 }
 
 .empty-sub { font-size: 12px; }
+
+/* ============ Toast ============ */
+.toast {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--bg);
+  background: var(--ink);
+  border-radius: var(--radius);
+  padding: 9px 10px 9px 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  z-index: 30;
+  animation: slideUp 0.18s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.toast-btn {
+  font: inherit;
+  font-weight: 600;
+  color: var(--bg);
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.toast-btn:hover { opacity: 1; }
+
+/* Ruang ekstra biar toast nggak nutup item terakhir */
+body { padding-bottom: 64px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }

@@ -14,14 +14,24 @@
     </div>
     <div class="header-right">
       <div class="counter" id="counter" title="Tugas aktif">0</div>
-      <button class="hdr-btn" id="themeBtn" title="Ganti tema">◐</button>
+      <button class="hdr-btn" id="themeBtn" title="Tema &amp; backup">◐</button>
       <button class="hdr-btn" id="closeBtn" title="Tutup panel">✕</button>
     </div>
   </header>
 
   <div class="theme-picker" id="themePicker" hidden>
-    <p class="theme-label">Tema</p>
-    <div class="swatches" id="swatches"></div>
+    <div class="picker-row">
+      <p class="theme-label">Tema</p>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="picker-row">
+      <p class="theme-label">Data</p>
+      <div class="backup-actions">
+        <button class="text-btn" id="exportBtn" title="Unduh semua tugas &amp; riwayat sebagai file JSON">Ekspor JSON</button>
+        <button class="text-btn" id="importBtn" title="Gabungkan data dari file backup JSON">Impor JSON</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden />
+      </div>
+    </div>
   </div>
 
   <div class="composer">
@@ -66,6 +76,11 @@
       </div>
     </section>
   </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+    <span id="toastMsg"></span>
+    <button class="toast-btn" id="toastUndo">Batalkan</button>
+  </div>
 
   <script src="sidepanel.js"></script>
 </body>

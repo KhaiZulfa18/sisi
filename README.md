@@ -9,6 +9,10 @@ Ekstensi Chrome berupa to-do list minimalis yang tampil di **side panel** browse
 - **Autocomplete tag** — saat mengetik `#`, muncul saran dari tag yang pernah dipakai; navigasi dengan panah atas/bawah, pilih dengan `Tab`/`Enter`.
 - **Filter berdasarkan tag** — klik chip tag untuk menyaring daftar aktif maupun riwayat.
 - **Drag & drop reorder** — urutkan ulang tugas lewat drag handle (⠿).
+- **Edit inline** — klik dua kali teks tugas (atau tombol ✎) untuk mengubah teks & tag; `Enter` simpan, `Esc` batal.
+- **Undo hapus** — setiap penghapusan (tugas, item riwayat, hapus semua riwayat, impor) bisa dibatalkan lewat toast *Batalkan* atau `Ctrl+Z` / `Cmd+Z`.
+- **Sinkron antar window** — side panel yang terbuka di beberapa window Chrome selalu menampilkan data yang sama, tanpa saling menimpa.
+- **Backup ekspor/impor JSON** — lewat tombol ◐ → *Data*. Impor bersifat **menggabungkan** (item dengan id yang sudah ada dilewati), jadi aman dipakai berulang.
 - **Checklist → Riwayat** — centang tugas selesai, pindahkan ke tab Riwayat, atau kembalikan (restore) ke daftar aktif kapan saja.
 - **Tema** — 7 pilihan tema (Auto/sistem, Kertas, Gelap, Laut, Senja, Ungu, Hutan), termasuk auto dark-mode mengikuti preferensi sistem.
 - **Data 100% lokal** — memakai permission `storage` saja, tidak ada akses ke isi halaman web.
