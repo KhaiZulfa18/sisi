@@ -6,19 +6,26 @@ Ekstensi Chrome berupa to-do list minimalis yang tampil di **side panel** browse
 
 - **Side panel bawaan Chrome** — buka lewat klik ikon toolbar atau shortcut `Ctrl+Shift+S` (`Cmd+Shift+S` di Mac), tanpa membuka tab/window baru.
 - **Tag lewat `#`** — tulis `review PR dashboard #kerja #urgent` dan tag otomatis terpisah dari teks tugas, lengkap dengan warna yang konsisten per nama tag.
-- **Autocomplete tag** — saat mengetik `#`, muncul saran dari tag yang pernah dipakai; navigasi dengan panah atas/bawah, pilih dengan `Tab`/`Enter`.
+- **Tenggat (due date) per tanggal** — opsional. Ketik `@besok`, `@lusa`, `@hari-ini`, nama hari (`@jumat`), atau tanggal (`@15/11`, `@15/11/2027`, `@2026-11-15`), atau klik tombol kalender di samping input. Badge-nya berwarna: **Hari ini**, **Besok**, dan merah untuk **Lewat N hari**. Klik badge (atau ikon kalender saat hover) untuk mengubah; tombol *Hapus* di kalender atau menghapus token `@…` saat edit akan mengosongkan tenggat. Di Riwayat, tugas yang selesai melewati tenggat ditandai *(telat)*.
+- **Autocomplete tag & tanggal** — saat mengetik `#`, muncul saran dari tag yang pernah dipakai; saat mengetik `@`, muncul saran tanggal (hari ini, besok, nama hari) beserta tanggalnya; navigasi dengan panah atas/bawah, pilih dengan `Tab`/`Enter`.
+- **Badge di ikon toolbar** — jumlah tugas aktif yang belum dicentang, tetap update walau side panel tertutup. Badge berubah oranye-merah kalau ada tugas yang tenggatnya hari ini atau sudah lewat (dicek ulang tiap 30 menit lewat `chrome.alarms`).
+- **Search** — cari di tab Aktif maupun Riwayat; semua kata harus cocok, tidak peka huruf besar/kecil, bisa cari tag dengan `#kerja`, dan bagian yang cocok di-highlight. Fokus cepat dengan `/` atau `Ctrl+F` / `Cmd+F`, `Esc` untuk mengosongkan. Bisa dikombinasikan dengan filter tag.
 - **Filter berdasarkan tag** — klik chip tag untuk menyaring daftar aktif maupun riwayat.
 - **Drag & drop reorder** — urutkan ulang tugas lewat drag handle (⠿).
+- **Edit inline** — klik dua kali teks tugas (atau tombol ✎) untuk mengubah teks & tag; `Enter` simpan, `Esc` batal.
+- **Undo hapus** — setiap penghapusan (tugas, item riwayat, hapus semua riwayat, impor) bisa dibatalkan lewat toast *Batalkan* atau `Ctrl+Z` / `Cmd+Z`.
+- **Sinkron antar window** — side panel yang terbuka di beberapa window Chrome selalu menampilkan data yang sama, tanpa saling menimpa.
+- **Backup ekspor/impor JSON** — lewat tombol ◐ → *Data*. Impor bersifat **menggabungkan** (item dengan id yang sudah ada dilewati), jadi aman dipakai berulang.
 - **Checklist → Riwayat** — centang tugas selesai, pindahkan ke tab Riwayat, atau kembalikan (restore) ke daftar aktif kapan saja.
 - **Tema** — 7 pilihan tema (Auto/sistem, Kertas, Gelap, Laut, Senja, Ungu, Hutan), termasuk auto dark-mode mengikuti preferensi sistem.
-- **Data 100% lokal** — memakai permission `storage` saja, tidak ada akses ke isi halaman web.
+- **Data 100% lokal** — hanya memakai permission `storage`, `sidePanel`, dan `alarms` (untuk refresh badge); tidak ada akses ke isi halaman web.
 
 ## Struktur proyek
 
 ```
 todo-extension/
 ├── manifest.json     # Manifest V3
-├── background.js     # Service worker — buka side panel saat ikon diklik
+├── background.js     # Service worker — buka side panel saat ikon diklik + badge jumlah tugas
 ├── sidepanel.html     # Markup UI
 ├── sidepanel.css      # Styling + tema
 ├── sidepanel.js        # Logic: state, storage, render, drag & drop

@@ -147,8 +147,8 @@ body {
 /* ============ Theme picker ============ */
 .theme-picker {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -157,11 +157,27 @@ body {
   animation: slideIn 0.18s ease;
 }
 
+.picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .theme-label {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--ink-soft);
+  min-width: 32px;
 }
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: -6px;
+}
+
+.backup-actions .text-btn:hover { color: var(--accent); }
 
 .swatches { display: flex; gap: 7px; }
 
@@ -227,6 +243,43 @@ body {
 
 #addBtn:hover { filter: brightness(0.95); }
 
+.composer-btn {
+  width: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.composer-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+.cal-icon {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* Input tanggal tak terlihat — hanya jangkar untuk showPicker() */
+.due-picker {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+  padding: 0;
+}
+
 /* Dropdown saran tag */
 .tag-suggest {
   position: absolute;
@@ -253,6 +306,14 @@ body {
   padding: 8px 12px;
   cursor: pointer;
 }
+
+.suggest-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.suggest-hint { color: var(--ink-soft); }
 
 .suggest-item:hover,
 .suggest-item.hl {
@@ -297,6 +358,79 @@ body {
   color: var(--ink);
   font-weight: 600;
   border-bottom-color: var(--accent);
+}
+
+/* ============ Search ============ */
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+#searchInput {
+  width: 100%;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 30px 6px 30px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+#searchInput::placeholder { color: var(--ink-soft); }
+#searchInput:focus { border-color: var(--accent); background: var(--surface); }
+#searchInput::-webkit-search-cancel-button { display: none; }
+
+.search-kbd {
+  position: absolute;
+  right: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 5px;
+  pointer-events: none;
+}
+
+#searchInput:focus ~ .search-kbd,
+#searchInput:not(:placeholder-shown) ~ .search-kbd { display: none; }
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  border-radius: 999px;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.search-clear:hover { color: var(--ink); }
+
+.task-text mark {
+  color: inherit;
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  border-radius: 3px;
 }
 
 /* ============ Tag filter ============ */
@@ -445,11 +579,54 @@ body {
 }
 
 .task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--ink-soft);
   margin-top: 5px;
 }
+
+.task-meta .late { color: var(--danger); }
+
+/* Badge tenggat */
+.due-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 7px 1px 5px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.due-badge .cal-icon { width: 11px; height: 11px; }
+.due-badge:hover { border-color: var(--ink-soft); }
+
+.due-badge.soon { color: var(--ink); border-color: var(--ink-soft); }
+
+.due-badge.today {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.due-badge.overdue {
+  color: var(--danger);
+  border-color: currentColor;
+  font-weight: 600;
+}
+
+.icon-btn.set-due { display: flex; align-items: center; }
+.icon-btn.set-due .cal-icon { width: 13px; height: 13px; }
+.icon-btn.set-due:hover { color: var(--accent); }
 
 /* Action buttons */
 .task-actions {
@@ -488,9 +665,32 @@ body {
   transition: opacity 0.15s, color 0.15s;
 }
 
-.task:hover .icon-btn { opacity: 1; }
+.icon-row { display: flex; gap: 2px; }
+
+.task:hover .icon-btn,
+.icon-btn:focus-visible { opacity: 1; }
+.icon-btn.edit:hover { color: var(--accent); }
 .icon-btn:hover { color: var(--danger); }
 .icon-btn.restore:hover { color: var(--accent); }
+
+/* Edit inline */
+.task-text { cursor: text; }
+
+.edit-input {
+  width: 100%;
+  font: inherit;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 3px 7px;
+  margin: -4px 0 0 -8px;
+  outline: none;
+}
+
+.task.editing { border-color: var(--accent); }
+.task.editing .drag-handle { visibility: hidden; }
 
 /* ============ History ============ */
 .history-actions {
@@ -526,6 +726,49 @@ body {
 }
 
 .empty-sub { font-size: 12px; }
+
+/* ============ Toast ============ */
+.toast {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--bg);
+  background: var(--ink);
+  border-radius: var(--radius);
+  padding: 9px 10px 9px 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  z-index: 30;
+  animation: slideUp 0.18s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.toast-btn {
+  font: inherit;
+  font-weight: 600;
+  color: var(--bg);
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.toast-btn:hover { opacity: 1; }
+
+/* Ruang ekstra biar toast nggak nutup item terakhir */
+body { padding-bottom: 64px; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }

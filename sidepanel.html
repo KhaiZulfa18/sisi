@@ -13,15 +13,25 @@
       <p class="date" id="todayDate"></p>
     </div>
     <div class="header-right">
-      <div class="counter" id="counter" title="Tugas aktif">0</div>
-      <button class="hdr-btn" id="themeBtn" title="Ganti tema">◐</button>
+      <div class="counter" id="counter" title="Tugas belum selesai">0</div>
+      <button class="hdr-btn" id="themeBtn" title="Tema &amp; backup">◐</button>
       <button class="hdr-btn" id="closeBtn" title="Tutup panel">✕</button>
     </div>
   </header>
 
   <div class="theme-picker" id="themePicker" hidden>
-    <p class="theme-label">Tema</p>
-    <div class="swatches" id="swatches"></div>
+    <div class="picker-row">
+      <p class="theme-label">Tema</p>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="picker-row">
+      <p class="theme-label">Data</p>
+      <div class="backup-actions">
+        <button class="text-btn" id="exportBtn" title="Unduh semua tugas &amp; riwayat sebagai file JSON">Ekspor JSON</button>
+        <button class="text-btn" id="importBtn" title="Gabungkan data dari file backup JSON">Impor JSON</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden />
+      </div>
+    </div>
   </div>
 
   <div class="composer">
@@ -29,20 +39,38 @@
       <input
         type="text"
         id="taskInput"
-        placeholder="Tulis tugas… pakai #tag untuk label"
+        placeholder="Tulis tugas… #tag, @tanggal"
         autocomplete="off"
         spellcheck="false"
       />
       <div class="tag-suggest" id="tagSuggest" hidden></div>
     </div>
+    <button id="dueBtn" class="composer-btn" title="Pilih tanggal tenggat (atau ketik @besok, @15/11)" aria-label="Pilih tanggal tenggat">
+      <svg class="cal-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>
+    </button>
     <button id="addBtn" title="Tambah tugas (Enter)">+</button>
   </div>
-  <p class="hint">contoh: <code>review PR dashboard #kerja #urgent</code></p>
+  <p class="hint">contoh: <code>review PR dashboard #kerja @besok</code></p>
+  <input type="date" id="duePicker" class="due-picker" tabindex="-1" aria-hidden="true" />
 
   <nav class="tabs">
     <button class="tab active" data-tab="active">Aktif</button>
     <button class="tab" data-tab="history">Riwayat</button>
   </nav>
+
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+    <input
+      type="search"
+      id="searchInput"
+      placeholder="Cari tugas…"
+      autocomplete="off"
+      spellcheck="false"
+      aria-label="Cari tugas"
+    />
+    <kbd class="search-kbd" aria-hidden="true">/</kbd>
+    <button class="search-clear" id="searchClear" title="Hapus pencarian (Esc)" aria-label="Hapus pencarian" hidden>✕</button>
+  </div>
 
   <div class="tag-filter" id="tagFilter"></div>
 
@@ -65,7 +93,16 @@
         <p class="empty-sub">Tugas yang selesai akan tersimpan di sini.</p>
       </div>
     </section>
+    <div class="empty" id="emptySearch" hidden>
+      <p id="emptySearchMsg">Tidak ada yang cocok</p>
+      <p class="empty-sub">Coba kata lain, atau hapus filter.</p>
+    </div>
   </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+    <span id="toastMsg"></span>
+    <button class="toast-btn" id="toastUndo">Batalkan</button>
+  </div>
 
   <script src="sidepanel.js"></script>
 </body>

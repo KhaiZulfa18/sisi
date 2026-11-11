@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Sisi — To-Do List",
   "description": "To-do list minimalis di side panel Chrome. Checklist, tag, dan riwayat tugas selesai.",
-  "version": "1.2.0",
-  "permissions": ["storage", "sidePanel"],
+  "version": "1.5.0",
+  "permissions": ["storage", "sidePanel", "alarms"],
   "commands": {
     "_execute_action": {
       "suggested_key": {
