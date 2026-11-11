@@ -2,6 +2,7 @@
 let tasks = [];   // { id, text, tags[], checked, createdAt }
 let history = []; // { id, text, tags[], createdAt, doneAt }
 let activeFilter = null;
+let searchQuery = "";     // teks pencarian (berlaku di tab Aktif & Riwayat)
 let currentTab = "active";
 let theme = "auto";
 let editingId = null;     // id tugas yang sedang diedit inline
@@ -64,6 +65,8 @@ const tagFilter = $("#tagFilter");
 const counter = $("#counter");
 const tagSuggest = $("#tagSuggest");
 const toast = $("#toast");
+const searchInput = $("#searchInput");
+const searchClear = $("#searchClear");
 const toastMsg = $("#toastMsg");
 const toastUndo = $("#toastUndo");
 
@@ -493,7 +496,7 @@ function commitEdit() {
 
   // Patch satu item saja supaya klik di item lain (yang memicu blur) tetap jalan
   const li = input?.closest(".task");
-  const stillVisible = t && (!activeFilter || t.tags.includes(activeFilter));
+  const stillVisible = t && matchesView(t);
   if (li && stillVisible && !pendingRender) {
     li.outerHTML = activeItemHTML(t);
     renderFilterChips();
@@ -716,8 +719,45 @@ function renderTags(tags) {
   return `<div class="task-tags">${chips}</div>`;
 }
 
+// ============ Search ============
+// Huruf kecil + buang diakritik, supaya "cafe" juga ketemu "café"
+const fold = (s) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+function searchTerms() {
+  return fold(searchQuery).split(/\s+/).filter(Boolean);
+}
+
+// Semua kata harus muncul di teks atau tag (#tag juga boleh diketik lengkap)
+function matchesSearch(t, terms = searchTerms()) {
+  if (terms.length === 0) return true;
+  const hay = fold(`${t.text} ${t.tags.map((tag) => `#${tag}`).join(" ")}`);
+  return terms.every((term) => hay.includes(term));
+}
+
+function matchesView(t) {
+  return (!activeFilter || t.tags.includes(activeFilter)) && matchesSearch(t);
+}
+
 function visibleTasks(list) {
-  return activeFilter ? list.filter((t) => t.tags.includes(activeFilter)) : list;
+  return list.filter(matchesView);
+}
+
+// Teks tugas dengan bagian yang cocok dibungkus <mark>
+function highlight(text) {
+  const terms = searchTerms().filter((term) => !term.startsWith("#"));
+  if (terms.length === 0) return esc(text);
+  const re = new RegExp(
+    terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
+    "giu"
+  );
+  let out = "";
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    if (!m[0]) continue;
+    out += esc(text.slice(last, m.index)) + `<mark>${esc(m[0])}</mark>`;
+    last = m.index + m[0].length;
+  }
+  return out + esc(text.slice(last));
 }
 
 const CAL_ICON = `<svg class="cal-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>`;
@@ -736,7 +776,7 @@ function activeItemHTML(t) {
     ? `<input type="text" class="edit-input" value="${esc(composeRaw(t))}"
          spellcheck="false" autocomplete="off" aria-label="Edit tugas">
        <div class="task-meta">Enter simpan · Esc batal</div>`
-    : `<div class="task-text" title="Klik dua kali untuk edit">${esc(t.text)}</div>
+    : `<div class="task-text" title="Klik dua kali untuk edit">${highlight(t.text)}</div>
        ${renderTags(t.tags)}
        <div class="task-meta">${dueBadgeHTML(t)}<span>dibuat ${fmtDate(t.createdAt)}</span></div>`;
   return `
@@ -766,7 +806,7 @@ function historyItemHTML(t) {
   return `
     <li class="task checked" data-id="${esc(t.id)}">
       <div class="task-body">
-        <div class="task-text">${esc(t.text)}</div>
+        <div class="task-text">${highlight(t.text)}</div>
         ${renderTags(t.tags)}
         <div class="task-meta">selesai ${fmtDateTime(t.doneAt)}${historyDueHTML(t)}</div>
       </div>
@@ -793,17 +833,29 @@ function renderFilterChips() {
 
 function render() {
   pendingRender = false;
-  counter.textContent = tasks.length;
+  counter.textContent = tasks.filter((t) => !t.checked).length;
 
   renderFilterChips();
 
   const activeItems = visibleTasks(tasks);
   taskList.innerHTML = activeItems.map(activeItemHTML).join("");
-  $("#emptyActive").hidden = activeItems.length > 0;
+  $("#emptyActive").hidden = activeItems.length > 0 || tasks.length > 0;
 
   const historyItems = visibleTasks(history);
   historyList.innerHTML = historyItems.map(historyItemHTML).join("");
-  $("#emptyHistory").hidden = historyItems.length > 0;
+  $("#emptyHistory").hidden = historyItems.length > 0 || history.length > 0;
+
+  // State "tidak ada yang cocok" kalau daftar ada isinya tapi tersaring habis
+  const source = currentTab === "active" ? tasks : history;
+  const shown = currentTab === "active" ? activeItems : historyItems;
+  const noMatch = $("#emptySearch");
+  noMatch.hidden = !(source.length > 0 && shown.length === 0);
+  if (!noMatch.hidden) {
+    $("#emptySearchMsg").textContent = searchQuery.trim()
+      ? `Tidak ada yang cocok dengan “${searchQuery.trim()}”`
+      : "Tidak ada tugas dengan tag ini";
+  }
+  searchClear.hidden = !searchQuery;
 }
 
 // ============ Events ============
@@ -910,6 +962,44 @@ document.addEventListener("keydown", (e) => {
   if (typing && el.value) return;
   e.preventDefault();
   runUndo();
+});
+
+// Search
+searchInput.addEventListener("input", () => {
+  searchQuery = searchInput.value;
+  if (editingId) commitEdit();
+  render();
+});
+
+function clearSearch() {
+  searchInput.value = "";
+  searchQuery = "";
+  render();
+}
+
+searchInput.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    e.preventDefault();
+    if (searchInput.value) clearSearch();
+    else searchInput.blur();
+  }
+});
+
+searchClear.addEventListener("click", () => {
+  clearSearch();
+  searchInput.focus();
+});
+
+// "/" atau Ctrl/Cmd+F untuk fokus ke kolom cari (kecuali sedang mengetik di input lain)
+document.addEventListener("keydown", (e) => {
+  const el = document.activeElement;
+  const typing = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA") && el.type !== "checkbox";
+  const isFind = (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "f";
+  if (isFind || (e.key === "/" && !typing && !e.ctrlKey && !e.metaKey && !e.altKey)) {
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  }
 });
 
 // Theme picker
