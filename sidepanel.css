@@ -243,6 +243,43 @@ body {
 
 #addBtn:hover { filter: brightness(0.95); }
 
+.composer-btn {
+  width: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.composer-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+.cal-icon {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* Input tanggal tak terlihat — hanya jangkar untuk showPicker() */
+.due-picker {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+  padding: 0;
+}
+
 /* Dropdown saran tag */
 .tag-suggest {
   position: absolute;
@@ -269,6 +306,14 @@ body {
   padding: 8px 12px;
   cursor: pointer;
 }
+
+.suggest-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.suggest-hint { color: var(--ink-soft); }
 
 .suggest-item:hover,
 .suggest-item.hl {
@@ -461,11 +506,54 @@ body {
 }
 
 .task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--ink-soft);
   margin-top: 5px;
 }
+
+.task-meta .late { color: var(--danger); }
+
+/* Badge tenggat */
+.due-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 7px 1px 5px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.due-badge .cal-icon { width: 11px; height: 11px; }
+.due-badge:hover { border-color: var(--ink-soft); }
+
+.due-badge.soon { color: var(--ink); border-color: var(--ink-soft); }
+
+.due-badge.today {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.due-badge.overdue {
+  color: var(--danger);
+  border-color: currentColor;
+  font-weight: 600;
+}
+
+.icon-btn.set-due { display: flex; align-items: center; }
+.icon-btn.set-due .cal-icon { width: 13px; height: 13px; }
+.icon-btn.set-due:hover { color: var(--accent); }
 
 /* Action buttons */
 .task-actions {

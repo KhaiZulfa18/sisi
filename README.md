@@ -6,7 +6,8 @@ Ekstensi Chrome berupa to-do list minimalis yang tampil di **side panel** browse
 
 - **Side panel bawaan Chrome** — buka lewat klik ikon toolbar atau shortcut `Ctrl+Shift+S` (`Cmd+Shift+S` di Mac), tanpa membuka tab/window baru.
 - **Tag lewat `#`** — tulis `review PR dashboard #kerja #urgent` dan tag otomatis terpisah dari teks tugas, lengkap dengan warna yang konsisten per nama tag.
-- **Autocomplete tag** — saat mengetik `#`, muncul saran dari tag yang pernah dipakai; navigasi dengan panah atas/bawah, pilih dengan `Tab`/`Enter`.
+- **Tenggat (due date) per tanggal** — opsional. Ketik `@besok`, `@lusa`, `@hari-ini`, nama hari (`@jumat`), atau tanggal (`@15/11`, `@15/11/2027`, `@2026-11-15`), atau klik tombol kalender di samping input. Badge-nya berwarna: **Hari ini**, **Besok**, dan merah untuk **Lewat N hari**. Klik badge (atau ikon kalender saat hover) untuk mengubah; tombol *Hapus* di kalender atau menghapus token `@…` saat edit akan mengosongkan tenggat. Di Riwayat, tugas yang selesai melewati tenggat ditandai *(telat)*.
+- **Autocomplete tag & tanggal** — saat mengetik `#`, muncul saran dari tag yang pernah dipakai; saat mengetik `@`, muncul saran tanggal (hari ini, besok, nama hari) beserta tanggalnya; navigasi dengan panah atas/bawah, pilih dengan `Tab`/`Enter`.
 - **Filter berdasarkan tag** — klik chip tag untuk menyaring daftar aktif maupun riwayat.
 - **Drag & drop reorder** — urutkan ulang tugas lewat drag handle (⠿).
 - **Edit inline** — klik dua kali teks tugas (atau tombol ✎) untuk mengubah teks & tag; `Enter` simpan, `Esc` batal.

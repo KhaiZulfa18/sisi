@@ -39,15 +39,19 @@
       <input
         type="text"
         id="taskInput"
-        placeholder="Tulis tugas… pakai #tag untuk label"
+        placeholder="Tulis tugas… #tag untuk label, @tanggal untuk tenggat"
         autocomplete="off"
         spellcheck="false"
       />
       <div class="tag-suggest" id="tagSuggest" hidden></div>
     </div>
+    <button id="dueBtn" class="composer-btn" title="Pilih tanggal tenggat (atau ketik @besok, @15/11)" aria-label="Pilih tanggal tenggat">
+      <svg class="cal-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>
+    </button>
     <button id="addBtn" title="Tambah tugas (Enter)">+</button>
   </div>
-  <p class="hint">contoh: <code>review PR dashboard #kerja #urgent</code></p>
+  <p class="hint">contoh: <code>review PR dashboard #kerja @besok</code></p>
+  <input type="date" id="duePicker" class="due-picker" tabindex="-1" aria-hidden="true" />
 
   <nav class="tabs">
     <button class="tab active" data-tab="active">Aktif</button>

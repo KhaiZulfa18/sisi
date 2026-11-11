@@ -124,10 +124,94 @@ function knownTags() {
 
 const TAG_RE = /^[\p{L}\p{N}_-]+$/u;
 
-// Ekstrak #tag dari teks input
+// ============ Tanggal tenggat (due) ============
+// Disimpan sebagai string tanggal lokal "YYYY-MM-DD" (tanpa jam). Tidak ada = tanpa tenggat.
+const pad2 = (n) => String(n).padStart(2, "0");
+const toDateKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const fromDateKey = (k) => {
+  const [y, m, d] = k.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+const todayKey = () => toDateKey(new Date());
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+// Selisih hari dari hari ini (negatif = sudah lewat). Math.round menetralkan efek DST.
+const dayDiff = (k) => Math.round((fromDateKey(k) - fromDateKey(todayKey())) / 86400000);
+
+function isValidDateKey(k) {
+  if (typeof k !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(k)) return false;
+  return toDateKey(fromDateKey(k)) === k; // tolak 2026-02-31 dkk
+}
+
+const WEEKDAYS = ["minggu", "senin", "selasa", "rabu", "kamis", "jumat", "sabtu"];
+const DUE_KEYWORDS = { "hari-ini": 0, hariini: 0, today: 0, besok: 1, tomorrow: 1, lusa: 2 };
+
+// "@besok", "@jumat", "@15/11", "@15/11/2027", "@2026-11-15" -> "YYYY-MM-DD" | null
+function parseDue(token) {
+  const s = token.toLowerCase();
+  const today = fromDateKey(todayKey());
+
+  if (s in DUE_KEYWORDS) return toDateKey(addDays(today, DUE_KEYWORDS[s]));
+
+  const wd = WEEKDAYS.indexOf(s);
+  if (wd !== -1) return toDateKey(addDays(today, (wd - today.getDay() + 7) % 7)); // hari itu atau berikutnya
+
+  if (isValidDateKey(s)) return s;
+
+  const m = s.match(/^(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2}|\d{4}))?$/);
+  if (!m) return null;
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  let year = m[3] ? Number(m[3]) : today.getFullYear();
+  if (m[3] && m[3].length === 2) year += 2000;
+  const d = new Date(year, month - 1, day);
+  if (d.getDate() !== day || d.getMonth() !== month - 1) return null;
+  // Tanpa tahun & tanggalnya sudah lewat -> anggap tahun depan (mis. "@5/1" di bulan Desember)
+  if (!m[3] && d < today) d.setFullYear(year + 1);
+  return toDateKey(d);
+}
+
+// Kebalikan parseDue untuk isi mode edit. Tahun ditulis kalau tanpa tahun hasilnya bakal beda.
+function dueToken(k) {
+  const d = fromDateKey(k);
+  const omitYear = d.getFullYear() === new Date().getFullYear() && dayDiff(k) >= 0;
+  return `@${d.getDate()}/${d.getMonth() + 1}${omitYear ? "" : "/" + d.getFullYear()}`;
+}
+
+function fmtDue(k) {
+  const d = fromDateKey(k);
+  const opts = { day: "numeric", month: "short" };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return d.toLocaleDateString("id-ID", opts);
+}
+
+// Label + status badge tenggat untuk tugas aktif
+function dueInfo(k) {
+  const diff = dayDiff(k);
+  const date = fmtDue(k);
+  if (diff < 0) return { cls: "overdue", label: `Lewat ${-diff} hari · ${date}` };
+  if (diff === 0) return { cls: "today", label: "Hari ini" };
+  if (diff === 1) return { cls: "soon", label: "Besok" };
+  if (diff < 7) {
+    const wd = fromDateKey(k).toLocaleDateString("id-ID", { weekday: "short" });
+    return { cls: "", label: `${wd}, ${date}` };
+  }
+  return { cls: "", label: date };
+}
+
+// Token "@..." didahului spasi/awal teks, supaya email (a@b.com) tidak ikut terbaca
+const DUE_TOKEN_RE = /(^|\s)@([\p{L}\p{N}/._-]+)/gu;
+
+// Ekstrak #tag dan @tenggat dari teks input
 function parseInput(raw) {
   const tags = [];
+  let due = null;
   const text = raw
+    .replace(DUE_TOKEN_RE, (all, lead, tok) => {
+      const k = parseDue(tok);
+      if (!k) return all; // bukan tanggal -> biarkan sebagai teks
+      due = k; // kalau ada lebih dari satu, yang terakhir menang
+      return lead;
+    })
     .replace(/#([\p{L}\p{N}_-]+)/gu, (_, t) => {
       const tag = t.toLowerCase();
       if (!tags.includes(tag)) tags.push(tag);
@@ -135,12 +219,17 @@ function parseInput(raw) {
     })
     .replace(/\s{2,}/g, " ")
     .trim();
-  return { text, tags };
+  return { text, tags, due };
 }
 
-// Kebalikan parseInput: teks + #tag, dipakai sebagai isi awal mode edit
+// Kebalikan parseInput: teks + @tenggat + #tag, dipakai sebagai isi awal mode edit
 function composeRaw(t) {
-  return [t.text, ...t.tags.map((tag) => `#${tag}`)].join(" ");
+  return [t.text, ...(t.due ? [dueToken(t.due)] : []), ...t.tags.map((tag) => `#${tag}`)].join(" ");
+}
+
+function setDue(task, k) {
+  if (k) task.due = k;
+  else delete task.due;
 }
 
 function fmtDate(ts) {
@@ -185,29 +274,59 @@ function runUndo() {
   if (fn) fn();
 }
 
-// ============ Saran tag ============
+// ============ Saran #tag & @tanggal ============
 let suggestIndex = -1;
-let suggestItems = [];
+let suggestItems = []; // { insert, label, hint? }
+let suggestTokenRe = null; // regex token yang akan diganti saat saran dipilih
+
+const TAG_TYPING_RE = /#([\p{L}\p{N}_-]*)$/u;
+const DUE_TYPING_RE = /(?:^|\s)@([\p{L}\p{N}/._-]*)$/u;
+
+// Kata kunci tanggal: relatif dulu, lalu nama hari urut dari yang paling dekat
+function dueKeywordSuggestions() {
+  const dow = new Date().getDay();
+  const days = WEEKDAYS.map((w, i) => ({ w, d: (i - dow + 7) % 7 }))
+    .filter((x) => x.d >= 3) // hari ini, besok, lusa sudah diwakili kata kunci relatif
+    .sort((a, b) => a.d - b.d)
+    .map((x) => x.w);
+  return ["hari-ini", "besok", "lusa", ...days];
+}
 
 function updateSuggest() {
   const val = taskInput.value;
   const caret = taskInput.selectionStart ?? val.length;
-  // token #... yang sedang diketik (tepat sebelum caret)
+  // token #... / @... yang sedang diketik (tepat sebelum caret)
   const before = val.slice(0, caret);
-  const m = before.match(/#([\p{L}\p{N}_-]*)$/u);
-  if (!m) return hideSuggest();
 
-  const prefix = m[1].toLowerCase();
-  const { tags: usedInInput } = parseInput(val);
-  suggestItems = knownTags().filter(
-    (t) => t.startsWith(prefix) && t !== prefix && !usedInInput.includes(t)
-  ).slice(0, 6);
+  let m = before.match(TAG_TYPING_RE);
+  if (m) {
+    const prefix = m[1].toLowerCase();
+    const { tags: usedInInput } = parseInput(val);
+    suggestTokenRe = TAG_TYPING_RE;
+    suggestItems = knownTags()
+      .filter((t) => t.startsWith(prefix) && t !== prefix && !usedInInput.includes(t))
+      .slice(0, 6)
+      .map((t) => ({ insert: `#${t}`, label: `#${t}` }));
+  } else if ((m = before.match(DUE_TYPING_RE))) {
+    const prefix = m[1].toLowerCase();
+    suggestTokenRe = /@[\p{L}\p{N}/._-]*$/u;
+    suggestItems = dueKeywordSuggestions()
+      .filter((k) => k.startsWith(prefix) && k !== prefix)
+      .slice(0, 6)
+      .map((k) => ({ insert: `@${k}`, label: `@${k}`, hint: fmtDue(parseDue(k)) }));
+  } else {
+    return hideSuggest();
+  }
 
   if (suggestItems.length === 0) return hideSuggest();
 
   suggestIndex = -1;
   tagSuggest.innerHTML = suggestItems
-    .map((t, i) => `<button class="suggest-item" data-i="${i}">#${esc(t)}</button>`)
+    .map(
+      (s, i) => `<button class="suggest-item" data-i="${i}">
+        <span>${esc(s.label)}</span>${s.hint ? `<span class="suggest-hint">${esc(s.hint)}</span>` : ""}
+      </button>`
+    )
     .join("");
   tagSuggest.hidden = false;
 }
@@ -219,11 +338,11 @@ function hideSuggest() {
 }
 
 function applySuggestion(i) {
-  const tag = suggestItems[i];
-  if (!tag) return;
+  const item = suggestItems[i];
+  if (!item) return;
   const val = taskInput.value;
   const caret = taskInput.selectionStart ?? val.length;
-  const before = val.slice(0, caret).replace(/#([\p{L}\p{N}_-]*)$/u, `#${tag} `);
+  const before = val.slice(0, caret).replace(suggestTokenRe, `${item.insert} `);
   taskInput.value = before + val.slice(caret);
   const pos = before.length;
   taskInput.setSelectionRange(pos, pos);
@@ -243,9 +362,11 @@ function highlightSuggest(delta) {
 function addTask() {
   const raw = taskInput.value.trim();
   if (!raw) return;
-  const { text, tags } = parseInput(raw);
+  const { text, tags, due } = parseInput(raw);
   if (!text) return;
-  tasks.unshift({ id: uid(), text, tags, checked: false, createdAt: Date.now() });
+  const task = { id: uid(), text, tags, checked: false, createdAt: Date.now() };
+  setDue(task, due);
+  tasks.unshift(task);
   taskInput.value = "";
   hideSuggest();
   save();
@@ -360,11 +481,12 @@ function commitEdit() {
   const input = taskList.querySelector(".edit-input");
   const t = tasks.find((t) => t.id === id);
   if (t && input) {
-    const { text, tags } = parseInput(input.value);
-    // Teks kosong = batal, bukan hapus
-    if (text && (text !== t.text || tags.join(" ") !== t.tags.join(" "))) {
+    const { text, tags, due } = parseInput(input.value);
+    // Teks kosong = batal, bukan hapus. Token @tanggal yang dihapus = tenggat dikosongkan.
+    if (text && (text !== t.text || tags.join(" ") !== t.tags.join(" ") || (due || null) !== (t.due || null))) {
       t.text = text;
       t.tags = tags;
+      setDue(t, due);
       save();
     }
   }
@@ -385,6 +507,47 @@ function cancelEdit() {
   editingId = null;
   render();
 }
+
+// ============ Date picker tenggat ============
+// Satu <input type="date"> tak terlihat, diposisikan di dekat tombol pemicunya,
+// lalu dibuka lewat showPicker(). Tombol "Hapus"/"Clear" bawaan picker = kosongkan tenggat.
+const duePicker = $("#duePicker");
+let duePickerTarget = null; // "composer" | id tugas
+
+function openDuePicker(target, anchor, currentKey) {
+  duePickerTarget = target;
+  const r = anchor.getBoundingClientRect();
+  duePicker.style.left = `${Math.max(0, Math.min(r.left, window.innerWidth - 4))}px`;
+  duePicker.style.top = `${r.bottom}px`;
+  duePicker.value = currentKey || "";
+  try {
+    duePicker.showPicker();
+  } catch {
+    duePicker.focus(); // browser lama tanpa showPicker
+  }
+}
+
+duePicker.addEventListener("change", () => {
+  const k = isValidDateKey(duePicker.value) ? duePicker.value : null;
+  const target = duePickerTarget;
+  duePickerTarget = null;
+
+  if (target === "composer") {
+    // Ganti token @tanggal yang sudah ada (kalau ada), lalu tambahkan yang baru
+    let raw = taskInput.value.replace(DUE_TOKEN_RE, (all, lead, tok) => (parseDue(tok) ? lead : all));
+    raw = raw.replace(/\s{2,}/g, " ").trim();
+    if (k) raw = `${raw} ${dueToken(k)}`.trim();
+    taskInput.value = raw ? raw + " " : "";
+    taskInput.focus();
+    return;
+  }
+
+  const t = tasks.find((t) => t.id === target);
+  if (!t || (t.due || null) === k) return;
+  setDue(t, k);
+  save();
+  requestRender();
+});
 
 // ============ Backup: ekspor / impor ============
 function exportData() {
@@ -427,6 +590,7 @@ function normalizeItem(x, isHistory) {
     tags,
     createdAt,
   };
+  if (isValidDateKey(x.due)) item.due = x.due;
   if (isHistory) item.doneAt = Number.isFinite(x.doneAt) ? x.doneAt : createdAt;
   else item.checked = !!x.checked;
   return item;
@@ -556,6 +720,16 @@ function visibleTasks(list) {
   return activeFilter ? list.filter((t) => t.tags.includes(activeFilter)) : list;
 }
 
+const CAL_ICON = `<svg class="cal-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>`;
+
+function dueBadgeHTML(t) {
+  if (!t.due) return "";
+  const { cls, label } = dueInfo(t.due);
+  // Tugas yang sudah dicentang tidak perlu diwarnai "lewat"/"hari ini" lagi
+  const state = t.checked ? "" : cls;
+  return `<button class="due-badge ${state}" title="Tenggat ${esc(fmtDue(t.due))} — klik untuk ubah">${CAL_ICON}${esc(label)}</button>`;
+}
+
 function activeItemHTML(t) {
   const editing = t.id === editingId;
   const body = editing
@@ -564,7 +738,7 @@ function activeItemHTML(t) {
        <div class="task-meta">Enter simpan · Esc batal</div>`
     : `<div class="task-text" title="Klik dua kali untuk edit">${esc(t.text)}</div>
        ${renderTags(t.tags)}
-       <div class="task-meta">dibuat ${fmtDate(t.createdAt)}</div>`;
+       <div class="task-meta">${dueBadgeHTML(t)}<span>dibuat ${fmtDate(t.createdAt)}</span></div>`;
   return `
     <li class="task ${t.checked ? "checked" : ""} ${editing ? "editing" : ""}" data-id="${esc(t.id)}">
       <span class="drag-handle" title="Geser untuk mengurutkan">⠿</span>
@@ -573,11 +747,19 @@ function activeItemHTML(t) {
       <div class="task-actions">
         ${t.checked && !editing ? `<button class="done-btn" title="Pindahkan ke riwayat">Done ✓</button>` : ""}
         ${editing ? "" : `<div class="icon-row">
+          ${t.due ? "" : `<button class="icon-btn set-due" title="Atur tenggat">${CAL_ICON}</button>`}
           <button class="icon-btn edit" title="Edit tugas">✎</button>
           <button class="icon-btn del" title="Hapus tugas">✕</button>
         </div>`}
       </div>
     </li>`;
+}
+
+// Di riwayat: tampilkan tenggat + tanda kalau selesainya melewati tenggat
+function historyDueHTML(t) {
+  if (!t.due) return "";
+  const late = toDateKey(new Date(t.doneAt)) > t.due;
+  return ` · tenggat ${esc(fmtDue(t.due))}${late ? ` <span class="late">(telat)</span>` : ""}`;
 }
 
 function historyItemHTML(t) {
@@ -586,7 +768,7 @@ function historyItemHTML(t) {
       <div class="task-body">
         <div class="task-text">${esc(t.text)}</div>
         ${renderTags(t.tags)}
-        <div class="task-meta">selesai ${fmtDateTime(t.doneAt)}</div>
+        <div class="task-meta">selesai ${fmtDateTime(t.doneAt)}${historyDueHTML(t)}</div>
       </div>
       <div class="task-actions">
         <div class="icon-row">
@@ -664,6 +846,10 @@ taskList.addEventListener("click", (e) => {
   if (e.target.classList.contains("check")) toggleCheck(id);
   else if (e.target.classList.contains("done-btn")) markDone(id, li);
   else if (e.target.classList.contains("edit")) startEdit(id);
+  else if (e.target.closest(".due-badge, .set-due")) {
+    const t = tasks.find((t) => t.id === id);
+    openDuePicker(id, e.target.closest(".due-badge, .set-due"), t?.due);
+  }
   else if (e.target.classList.contains("del")) deleteTask(id, li);
 });
 
@@ -753,8 +939,25 @@ $("#importFile").addEventListener("change", async (e) => {
 $("#closeBtn").addEventListener("click", () => window.close());
 
 // Tanggal hari ini
-$("#todayDate").textContent = new Date().toLocaleDateString("id-ID", {
-  weekday: "long", day: "numeric", month: "long",
+$("#dueBtn").addEventListener("click", (e) => {
+  const { due } = parseInput(taskInput.value);
+  openDuePicker("composer", e.currentTarget, due);
 });
+
+// Tanggal hari ini. Dicek tiap menit supaya label "Hari ini"/"Lewat" ikut ganti
+// kalau panel dibiarkan terbuka melewati tengah malam.
+let shownDay = null;
+function refreshToday() {
+  const k = todayKey();
+  if (k === shownDay) return;
+  const first = shownDay === null;
+  shownDay = k;
+  $("#todayDate").textContent = new Date().toLocaleDateString("id-ID", {
+    weekday: "long", day: "numeric", month: "long",
+  });
+  if (!first) requestRender();
+}
+refreshToday();
+setInterval(refreshToday, 60 * 1000);
 
 load();
